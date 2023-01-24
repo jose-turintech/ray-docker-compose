@@ -2,7 +2,11 @@ version: "3"
 
 services:
   ray-head:
-    image: rayproject/ray:2.2.0-py38
+    #image: rayproject/ray:2.2.0-py38
+    image: ray-pytorch
+    build:
+      context: .
+      dockerfile: ./Dockerfile.pytorch
     ports:
       - "${REDISPORT}:${REDISPORT}"
       - "${DASHBOARDPORT}:${DASHBOARDPORT}"
@@ -18,7 +22,6 @@ services:
           memory: '2g'
     networks:
       - ray_net
-
   ray-worker-tensorflow:
     image: ray-tensorflow
     build:
@@ -59,7 +62,37 @@ services:
           memory: '2g'
     networks:
       - ray_net
-  
+  ray-client:
+    image: ray-client
+    build:
+      context: .
+      dockerfile: ./Dockerfile.client
+    depends_on:
+      - ray-head
+    env_file:
+      - .env
+    networks:
+      - ray_net
+  ray-worker-xgboost:
+    image: ray-xgboost
+    build:
+      context: .
+      dockerfile: ./Dockerfile.xgboost
+    depends_on:
+      - ray-head
+    env_file:
+      - .env
+    command: ray start --address=ray-head:${REDISPORT} --redis-password=${REDISPASSWORD} --num-cpus=${NUM_CPU_WORKER} --resources='{"xgboost":1}' --block
+    shm_size: 2g
+    deploy:
+      mode: replicated
+      replicas: ${NUM_WORKERS}
+      resources:
+        limits:
+          cpus: ${NUM_CPU_WORKER}
+          memory: '2g'
+    networks:
+      - ray_net
 networks:
   ray_net:
     ipam:
