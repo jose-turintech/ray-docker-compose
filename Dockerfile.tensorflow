@@ -1,0 +1,5 @@
+FROM rayproject/ray:2.2.0-py38
+
+RUN pip install tensorflow==2.11.0
+
+CMD ["bash", "-c", "ray start --head --num-cpus 1 --dashboard-host 0.0.0.0 --include-dashboard true --block"]
